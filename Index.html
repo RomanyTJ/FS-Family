@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>Cashwise Kit</title>
+</head>
+<body>
+<h1>Cashwise Kit</h1>
+<ul><li><button onclick='toggleSection("createUser")'>Create New User</button></li>
+<li><button onclick='toggleSection("setupAccounts")'>Set Up Accounts</button></li>
+<li><button onclick='toggleSection("recordIncome")'>Record Income</button></li>
+
+<li><button onclick='toggleSection("budgetBuilder")'>Build Budget</button></li>
+<li><button onclick='toggleSection("recordPayment")'>Record Payment</button></li>
+<li><button onclick='toggleSection("accountAnalysis")'>Account Analysis</button></li>
+<li><button onclick='toggleSection("budgetVsActual")'>Budget vs Actual</button></li>
+<li><button onclick='toggleSection("accountActivity")'>Account Activity</button></li>
+<li><button onclick='toggleSection("searchTransactions")'>Search Transactions</button></li>
+</ul>
+<!-- Build a Budget Section -->
+<div class="card" id="budgetBuilder" style="display:none;">
+  <h2>Build a Budget</h2>
+
+  <label for="budgetAccount">Select or Add Account:</label>
+  <input type="text" id="budgetAccount" list="budgetAccountList" placeholder="e.g., Grocery, Rent" />
+  <datalist id="budgetAccountList"></datalist>
+
+  <label for="budgetAmount">Planned Amount or % of Income (e.g., 100 or 10%):</label>
+  <input type="text" id="budgetAmount" placeholder="e.g., 200 or 10%" />
+
+  <button onclick="addToBudget()">Add to Budget</button>
+
+  <div id="budgetSummary" style="margin-top: 20px;"></div>
+</div>
+
+<!-- Create New User Section -->
+<div class="card" id="createUser" style="display:none;">
+  <h2>Create New User</h2>
+  <form id="userForm" onsubmit="saveUser(event)">
+    <label for="userName">Full Name:</label><br>
+    <input type="text" id="userName" required><br><br>
+
+    <label for="userEmail">Email:</label><br>
+    <input type="email" id="userEmail"><br><br>
+
+    <label for="userPhone">Phone Number:</label><br>
+    <input type="tel" id="userPhone"><br><br>
+
+    <label for="userTitle">Work Title / Occupation:</label><br>
+    <input type="text" id="userTitle"><br><br>
+
+    <label for="userCurrency">Preferred Currency:</label><br>
+    <input type="text" id="userCurrency" placeholder="e.g., USD, LBP"><br><br>
+
+    <button type="submit">Save User</button>
+  </form>
+
+  <div id="userSavedMessage" style="display:none; margin-top:10px; color: green;">
+    ✅ User profile saved successfully!
+  </div>
+</div>
+
+<script>
+function saveUser(event) {
+  event.preventDefault();
+  const user = {
+    name: document.getElementById("userName").value,
+    email: document.getElementById("userEmail").value,
+    phone: document.getElementById("userPhone").value,
+    title: document.getElementById("userTitle").value,
+    currency: document.getElementById("userCurrency").value
+  };
+  localStorage.setItem("cashwise_user", JSON.stringify(user));
+  document.getElementById("userSavedMessage").style.display = "block";
+}
+</script>
+<!-- Set Up Accounts Section -->
+<div class="card" id="setupAccounts" style="display:none;">
+  <h2>Set Up Accounts</h2>
+  <form onsubmit="addAccount(event)">
+    <label>Account Name:</label><br>
+    <input type="text" id="accountName" required><br><br>
+
+    <label>Account Type:</label><br>
+    <select id="accountType">
+      <option value="asset">Asset (e.g., Bank, Cash)</option>
+      <option value="paid">Paid/Spent (e.g., Tithe, Rent)</option>
+    </select><br><br>
+
+    <label>Starting Balance:</label><br>
+    <input type="number" id="startingBalance" value="0" step="0.01"><br><br>
+
+    <button type="submit">Add Account</button>
+  </form>
+
+  <h3>Existing Accounts:</h3>
+  <table id="accountsTable">
+    <tr><th>Name</th><th>Type</th><th>Starting Balance</th></tr>
+  </table>
+</div>
+
+<script>
+function loadAccounts() {
+  const defaultAccounts = [
+    { name: "Bank", type: "asset", balance: 0 },
+    { name: "Cash", type: "asset", balance: 0 },
+    { name: "Wallet", type: "asset", balance: 0 },
+    { name: "Tithe", type: "paid", balance: 0 },
+    { name: "Offerings", type: "paid", balance: 0 },
+    { name: "Rent", type: "paid", balance: 0 },
+    { name: "Groceries", type: "paid", balance: 0 },
+    { name: "Gasoline", type: "paid", balance: 0 },
+    { name: "Car Maintenance", type: "paid", balance: 0 },
+    { name: "Utilities", type: "paid", balance: 0 },
+    { name: "Medical", type: "paid", balance: 0 },
+    { name: "Education", type: "paid", balance: 0 },
+    { name: "Transport", type: "paid", balance: 0 },
+    { name: "Miscellaneous", type: "paid", balance: 0 }
+  ];
+  if (!localStorage.getItem("cashwise_accounts")) {
+    localStorage.setItem("cashwise_accounts", JSON.stringify(defaultAccounts));
+  }
+  renderAccounts();
+}
+
+function addAccount(event) {
+  event.preventDefault();
+  const name = document.getElementById("accountName").value.trim();
+  const type = document.getElementById("accountType").value;
+  const balance = parseFloat(document.getElementById("startingBalance").value) || 0;
+
+  let accounts = JSON.parse(localStorage.getItem("cashwise_accounts") || "[]");
+  accounts.push({ name, type, balance });
+  localStorage.setItem("cashwise_accounts", JSON.stringify(accounts));
+  renderAccounts();
+
+  document.getElementById("accountName").value = "";
+  document.getElementById("accountType").value = "asset";
+  document.getElementById("startingBalance").value = 0;
+}
+
+function renderAccounts() {
+  const table = document.getElementById("accountsTable");
+  const accounts = JSON.parse(localStorage.getItem("cashwise_accounts") || "[]");
+  table.innerHTML = "<tr><th>Name</th><th>Type</th><th>Starting Balance</th></tr>";
+  accounts.forEach(acc => {
+    table.innerHTML += `<tr><td>${acc.name}</td><td>${acc.type}</td><td>$${acc.balance.toFixed(2)}</td></tr>`;
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  if (document.getElementById("setupAccounts").style.display !== "none") {
+    loadAccounts();
+  }
+});
+</script>
+<!-- Record Income Section -->
+<div class="card" id="recordIncome" style="display:none;">
+  <h2>Record Income</h2>
+  <form onsubmit="saveIncome(event)">
+    <label>Date:</label><br>
+    <input type="date" id="incomeDate" required><br><br>
+
+    <label>Source of Income:</label><br>
+    <input type="text" id="incomeSource" required><br><br>
+
+    <label>Amount:</label><br>
+    <input type="number" id="incomeAmount" step="0.01" required><br><br>
+
+    <label>Description / Note:</label><br>
+    <input type="text" id="incomeNote"><br><br>
+
+    <label>Reference:</label><br>
+    <input type="text" id="incomeReference"><br><br>
+
+    <label><input type="checkbox" id="incomeIncludePercent"> Include in percentage-based calculations</label><br><br>
+
+    <button type="submit">Save Income</button>
+  </form>
+
+  <div id="incomeSavedMsg" style="display:none; margin-top:10px; color: green;">
+    ✅ Income recorded successfully!
+  </div>
+</div>
+
+<script>
+function saveIncome(event) {
+  event.preventDefault();
+
+  const entry = {
+    date: document.getElementById("incomeDate").value,
+    account: document.getElementById("incomeSource").value.trim(),
+    amount: parseFloat(document.getElementById("incomeAmount").value),
+    note: document.getElementById("incomeNote").value.trim(),
+    reference: document.getElementById("incomeReference").value.trim(),
+    includePercent: document.getElementById("incomeIncludePercent").checked
+  };
+
+  let entries = JSON.parse(localStorage.getItem("cashwise_income_entries") || "[]");
+  entries.push(entry);
+  localStorage.setItem("cashwise_income_entries", JSON.stringify(entries));
+
+  // reset form
+  document.getElementById("incomeDate").value = "";
+  document.getElementById("incomeSource").value = "";
+  document.getElementById("incomeAmount").value = "";
+  document.getElementById("incomeNote").value = "";
+  document.getElementById("incomeReference").value = "";
+  document.getElementById("incomeIncludePercent").checked = false;
+
+  document.getElementById("incomeSavedMsg").style.display = "block";
+}
+</script>
+<script>
+  let budgets = {};
+  let monthlyIncome = 0;
+
+  function toggleBudgetBuilder() {
+    document.getElementById("budgetBuilder").style.display = "block";
+    updateBudgetDatalist();
+  }
+
+  function parseBudgetInput(input, baseIncome) {
+    input = input.trim();
+    if (input.endsWith('%')) {
+      const percent = parseFloat(input.slice(0, -1));
+      return isNaN(percent) ? 0 : (baseIncome * percent / 100);
+    }
+    return parseFloat(input) || 0;
+  }
+
+  function addToBudget() {
+    const account = document.getElementById("budgetAccount").value.trim();
+    const input = document.getElementById("budgetAmount").value.trim();
+    const amount = parseBudgetInput(input, monthlyIncome);
+
+    if (!account || amount <= 0) {
+      alert("Please enter a valid account and amount.");
+      return;
+    }
+
+    budgets[account] = amount;
+    localStorage.setItem("cashwise_budgets", JSON.stringify(budgets));
+    renderBudgetSummary();
+    document.getElementById("budgetAccount").value = '';
+    document.getElementById("budgetAmount").value = '';
+  }
+
+  function renderBudgetSummary() {
+    const summary = document.getElementById("budgetSummary");
+    let total = 0;
+    summary.innerHTML = "<h3>Budget Summary:</h3><table><tr><th>Account</th><th>Planned</th></tr>";
+    for (let acc in budgets) {
+      total += budgets[acc];
+      summary.innerHTML += `<tr><td>${acc}</td><td>$${budgets[acc].toFixed(2)}</td></tr>`;
+    }
+    const percentUsed = monthlyIncome ? ((total / monthlyIncome) * 100).toFixed(1) : 0;
+    const leftover = (monthlyIncome - total).toFixed(2);
+
+    summary.innerHTML += `</table><p><strong>Total Budgeted:</strong> $${total.toFixed(2)}<br/>
+      <strong>Used:</strong> ${percentUsed}% of income<br/>
+      <strong>${leftover >= 0 ? 'Extra Savings' : 'Over Budget'}:</strong> $${Math.abs(leftover)}</p>`;
+  }
+
+  function updateBudgetDatalist() {
+    const accountOptions = [
+      "Tithe", "Offerings", "Rent", "Utilities", "Grocery", "Gasoline", "Car Maintenance",
+      "Medical", "School Fees", "Giving", "Transportation", "Personal Spending", "Savings", "Loan Repayment"
+    ];
+    const datalist = document.getElementById("budgetAccountList");
+    datalist.innerHTML = '';
+    accountOptions.forEach(acc => {
+      const option = document.createElement("option");
+      option.value = acc;
+      datalist.appendChild(option);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    monthlyIncome = parseFloat(localStorage.getItem("cashwise_income") || "0");
+    budgets = JSON.parse(localStorage.getItem("cashwise_budgets") || "{}");
+    renderBudgetSummary();
+  });
+</script>
+
+<style>
+  #budgetSummary table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  #budgetSummary th, #budgetSummary td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+  }
+  #budgetSummary th {
+    background-color: #f2f2f2;
+  }
+</style>
+
+<!-- Record a Payment Section -->
+<div class="card" id="recordPayment" style="display:none;">
+  <h2>Record a Payment</h2>
+
+  <label for="paymentDate">Date:</label>
+  <input type="date" id="paymentDate" />
+
+  <label for="paymentAccount">Paid/Spent Account:</label>
+  <input type="text" id="paymentAccount" list="spentAccountList" placeholder="e.g., Grocery, Tithe" />
+  <datalist id="spentAccountList">
+    <option value="Tithe" />
+    <option value="Offerings" />
+    <option value="Rent" />
+    <option value="Utilities" />
+    <option value="Grocery" />
+    <option value="Gasoline" />
+    <option value="Car Maintenance" />
+    <option value="Medical" />
+    <option value="School Fees" />
+    <option value="Giving" />
+    <option value="Transportation" />
+    <option value="Personal Spending" />
+    <option value="Savings" />
+    <option value="Loan Repayment" />
+  </datalist>
+
+  <label for="paymentAmount">Amount:</label>
+  <input type="number" id="paymentAmount" placeholder="e.g., 50" />
+
+  <label for="paymentNote">Description / Note:</label>
+  <input type="text" id="paymentNote" placeholder="e.g., paid electricity bill" />
+
+  <label for="paymentSource">Paid From (Asset Account):</label>
+  <select id="paymentSource">
+    <option value="Cash at Home">Cash at Home</option>
+    <option value="Bank Account">Bank Account</option>
+    <option value="Mobile Wallet">Mobile Wallet</option>
+    <option value="Emergency Fund">Emergency Fund</option>
+  </select>
+
+  <button onclick="savePayment()">Save Payment</button>
+
+  <div id="paymentList" style="margin-top: 20px;"></div>
+</div>
+
+<script>
+  let payments = [];
+
+  function toggleRecordPayment() {
+    document.getElementById("recordPayment").style.display = "block";
+  }
+
+  function savePayment() {
+    const date = document.getElementById("paymentDate").value;
+    const account = document.getElementById("paymentAccount").value.trim();
+    const amount = parseFloat(document.getElementById("paymentAmount").value);
+    const note = document.getElementById("paymentNote").value.trim();
+    const source = document.getElementById("paymentSource").value;
+
+    if (!date || !account || isNaN(amount) || !source) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    const payment = { date, account, amount, note, source };
+    payments.push(payment);
+    localStorage.setItem("cashwise_payments", JSON.stringify(payments));
+    renderPayments();
+    clearPaymentForm();
+  }
+
+  function clearPaymentForm() {
+    document.getElementById("paymentDate").value = '';
+    document.getElementById("paymentAccount").value = '';
+    document.getElementById("paymentAmount").value = '';
+    document.getElementById("paymentNote").value = '';
+    document.getElementById("paymentSource").value = 'Cash at Home';
+  }
+
+  function renderPayments() {
+    const list = document.getElementById("paymentList");
+    list.innerHTML = "<h3>Recorded Payments:</h3><table><tr><th>Date</th><th>Account</th><th>Amount</th><th>Note</th><th>Paid From</th></tr>";
+    payments.forEach(p => {
+      list.innerHTML += `<tr><td>${p.date}</td><td>${p.account}</td><td>$${p.amount.toFixed(2)}</td><td>${p.note}</td><td>${p.source}</td></tr>`;
+    });
+    list.innerHTML += "</table>";
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    payments = JSON.parse(localStorage.getItem("cashwise_payments") || "[]");
+    renderPayments();
+  });
+</script>
+
+<style>
+  #paymentList table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  #paymentList th, #paymentList td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+  }
+  #paymentList th {
+    background-color: #f2f2f2;
+  }
+</style>
+
+<!-- Account Analysis Section -->
+<div class="card" id="accountAnalysis" style="display:none;">
+  <h2>Account Analysis</h2>
+
+  <div id="assetTable" style="margin-top: 20px;"></div>
+  <div id="spentTable" style="margin-top: 20px;"></div>
+</div>
+
+<script>
+  function toggleAccountAnalysis() {
+    document.getElementById("accountAnalysis").style.display = "block";
+    renderAccountAnalysis();
+  }
+
+  function renderAccountAnalysis() {
+    const accounts = JSON.parse(localStorage.getItem("cashwise_accounts") || "[]");
+    const incomes = JSON.parse(localStorage.getItem("cashwise_income_entries") || "[]");
+    const payments = JSON.parse(localStorage.getItem("cashwise_payments") || "[]");
+
+    const assetAccounts = accounts.filter(a => a.type === "asset");
+    const spentAccounts = accounts.filter(a => a.type === "paid");
+
+    let assetSummary = {};
+    let spentSummary = {};
+
+    // Initialize summaries
+    assetAccounts.forEach(acc => {
+      assetSummary[acc.name] = {
+        starting: acc.balance,
+        income: 0,
+        spent: 0,
+        current: acc.balance
+      };
+    });
+
+    incomes.forEach(i => {
+      if (assetSummary[i.account]) {
+        assetSummary[i.account].income += i.amount;
+        assetSummary[i.account].current += i.amount;
+      }
+    });
+
+    payments.forEach(p => {
+      if (assetSummary[p.source]) {
+        assetSummary[p.source].spent += p.amount;
+        assetSummary[p.source].current -= p.amount;
+      }
+      if (!spentSummary[p.account]) {
+        spentSummary[p.account] = 0;
+      }
+      spentSummary[p.account] += p.amount;
+    });
+
+    // Render asset table
+    const assetTable = document.getElementById("assetTable");
+    assetTable.innerHTML = "<h3>Asset Accounts</h3><table><tr><th>Account</th><th>Starting</th><th>Income</th><th>Payments</th><th>Current</th></tr>";
+    let totalAssets = 0;
+    for (let acc in assetSummary) {
+      const a = assetSummary[acc];
+      totalAssets += a.current;
+      assetTable.innerHTML += `<tr><td>${acc}</td><td>$${a.starting.toFixed(2)}</td><td>$${a.income.toFixed(2)}</td><td>$${a.spent.toFixed(2)}</td><td>$${a.current.toFixed(2)}</td></tr>`;
+    }
+    assetTable.innerHTML += `</table><p><strong>Total Assets:</strong> $${totalAssets.toFixed(2)}</p>`;
+
+    // Render spent table
+    const spentTable = document.getElementById("spentTable");
+    spentTable.innerHTML = "<h3>Paid/Spent Accounts</h3><table><tr><th>Account</th><th>Total Spent</th></tr>";
+    let totalSpent = 0;
+    for (let acc in spentSummary) {
+      totalSpent += spentSummary[acc];
+      spentTable.innerHTML += `<tr><td>${acc}</td><td>$${spentSummary[acc].toFixed(2)}</td></tr>`;
+    }
+    spentTable.innerHTML += `</table><p><strong>Total Spent:</strong> $${totalSpent.toFixed(2)}</p>`;
+  }
+</script>
+
+<style>
+  #assetTable table, #spentTable table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  #assetTable th, #spentTable th, #assetTable td, #spentTable td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+  }
+  #assetTable th, #spentTable th {
+    background-color: #f2f2f2;
+  }
+</style>
+
+<!-- Budget vs Actual Section -->
+<div class="card" id="budgetVsActual" style="display:none;">
+  <h2>Budget vs Actual</h2>
+  <div id="budgetActualTable" style="margin-top: 20px;"></div>
+</div>
+
+<script>
+  function toggleBudgetVsActual() {
+    document.getElementById("budgetVsActual").style.display = "block";
+    renderBudgetVsActual();
+  }
+
+  function renderBudgetVsActual() {
+    const budgets = JSON.parse(localStorage.getItem("cashwise_budgets") || "{}");
+    const payments = JSON.parse(localStorage.getItem("cashwise_payments") || "[]");
+
+    let actuals = {};
+    payments.forEach(p => {
+      if (!actuals[p.account]) actuals[p.account] = 0;
+      actuals[p.account] += p.amount;
+    });
+
+    const table = document.getElementById("budgetActualTable");
+    table.innerHTML = "<table><tr><th>Account</th><th>Budgeted</th><th>Actual</th><th>Difference</th></tr>";
+
+    let overCount = 0, totalOver = 0;
+    let totalBudgeted = 0, totalActual = 0;
+
+    const allAccounts = new Set([...Object.keys(budgets), ...Object.keys(actuals)]);
+    allAccounts.forEach(acc => {
+      const budgeted = budgets[acc] || 0;
+      const actual = actuals[acc] || 0;
+      const diff = actual - budgeted;
+      const diffDisplay = diff === 0 ? "$0.00" : (diff > 0 ? `-$${diff.toFixed(2)}` : `+$${Math.abs(diff).toFixed(2)}`);
+
+      if (diff > 0) {
+        overCount++;
+        totalOver += diff;
+      }
+
+      totalBudgeted += budgeted;
+      totalActual += actual;
+
+      table.innerHTML += `<tr><td>${acc}</td><td>$${budgeted.toFixed(2)}</td><td>$${actual.toFixed(2)}</td><td>${diffDisplay}</td></tr>`;
+    });
+
+    const netDiff = totalBudgeted - totalActual;
+    const summary = netDiff >= 0 
+      ? `✅ You stayed within budget. You saved $${netDiff.toFixed(2)}.` 
+      : `⚠️ You overspent your budget by $${Math.abs(netDiff).toFixed(2)} in ${overCount} categories.`;
+
+    table.innerHTML += `</table><p><strong>${summary}</strong></p>`;
+  }
+</script>
+
+<style>
+  #budgetActualTable table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  #budgetActualTable th, #budgetActualTable td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+  }
+  #budgetActualTable th {
+    background-color: #f2f2f2;
+  }
+</style>
+
+<!-- Account Activity Section -->
+<div class="card" id="accountActivity" style="display:none;">
+  <h2>Account Activity</h2>
+  <div id="accountList"></div>
+  <div id="accountDetails" style="display:none; margin-top: 20px;"></div>
+  <button id="backToList" style="display:none;" onclick="showAccountList()">⬅ Back to Account List</button>
+</div>
+
+<script>
+  function toggleAccountActivity() {
+    document.getElementById("accountActivity").style.display = "block";
+    showAccountList();
+  }
+
+  function showAccountList() {
+    const accounts = JSON.parse(localStorage.getItem("cashwise_accounts") || "[]");
+    const listDiv = document.getElementById("accountList");
+    listDiv.innerHTML = "<h3>Select an Account:</h3><ul>";
+    accounts.forEach(acc => {
+      listDiv.innerHTML += `<li><button onclick="viewAccountDetails('${acc.name}')">${acc.name}</button></li>`;
+    });
+    listDiv.innerHTML += "</ul>";
+    document.getElementById("accountDetails").style.display = "none";
+    document.getElementById("backToList").style.display = "none";
+    listDiv.style.display = "block";
+  }
+
+  function viewAccountDetails(accountName) {
+    const incomes = JSON.parse(localStorage.getItem("cashwise_income_entries") || "[]");
+    const payments = JSON.parse(localStorage.getItem("cashwise_payments") || "[]");
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const entries = [];
+
+    incomes.forEach(i => {
+      if (i.account === accountName && new Date(i.date) >= threeMonthsAgo) {
+        entries.push({ date: i.date, type: "Income", amount: i.amount, note: i.note || "" });
+      }
+    });
+
+    payments.forEach(p => {
+      if ((p.account === accountName || p.source === accountName) && new Date(p.date) >= threeMonthsAgo) {
+        entries.push({
+          date: p.date,
+          type: p.account === accountName ? "Expense" : "Withdrawal",
+          amount: p.amount,
+          note: p.note || ""
+        });
+      }
+    });
+
+    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const detailsDiv = document.getElementById("accountDetails");
+    detailsDiv.innerHTML = `<h3>Statement for ${accountName}</h3><table><tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th></tr>`;
+    entries.forEach(e => {
+      detailsDiv.innerHTML += `<tr><td>${e.date}</td><td>${e.type}</td><td>$${e.amount.toFixed(2)}</td><td>${e.note}</td></tr>`;
+    });
+    detailsDiv.innerHTML += "</table>";
+
+    document.getElementById("accountList").style.display = "none";
+    detailsDiv.style.display = "block";
+    document.getElementById("backToList").style.display = "inline-block";
+  }
+</script>
+
+<style>
+  #accountList ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  #accountList li {
+    margin-bottom: 10px;
+  }
+  #accountList button {
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+  #accountDetails table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  #accountDetails th, #accountDetails td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+  }
+  #accountDetails th {
+    background-color: #f2f2f2;
+  }
+</style>
+
+<!-- Search Transactions Section -->
+<div class="card" id="searchTransactions" style="display:none;">
+  <h2>Search Transactions</h2>
+  <div id="transactionList"></div>
+  <div id="transactionDetails" style="display:none; margin-top: 20px;"></div>
+  <button id="backToTransactions" style="display:none;" onclick="showTransactionList()">⬅ Back to Transaction List</button>
+</div>
+
+<script>
+  function toggleSearchTransactions() {
+    document.getElementById("searchTransactions").style.display = "block";
+    showTransactionList();
+  }
+
+  function showTransactionList() {
+    const incomes = JSON.parse(localStorage.getItem("cashwise_income_entries") || "[]");
+    const payments = JSON.parse(localStorage.getItem("cashwise_payments") || "[]");
+
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    let allTransactions = [];
+
+    incomes.forEach((i, idx) => {
+      const date = new Date(i.date);
+      if (date >= threeMonthsAgo) {
+        allTransactions.push({
+          id: `INC-${idx + 1}`,
+          type: "Income",
+          date: i.date,
+          reference: i.reference || "",
+          amount: i.amount,
+          account: i.account,
+          note: i.note || ""
+        });
+      }
+    });
+
+    payments.forEach((p, idx) => {
+      const date = new Date(p.date);
+      if (date >= threeMonthsAgo) {
+        allTransactions.push({
+          id: `PAY-${idx + 1}`,
+          type: "Payment",
+          date: p.date,
+          reference: p.reference || "",
+          amount: p.amount,
+          account: p.account,
+          source: p.source,
+          note: p.note || ""
+        });
+      }
+    });
+
+    allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const listDiv = document.getElementById("transactionList");
+    listDiv.innerHTML = "<h3>Transactions (Last 3 Months):</h3><ul>";
+    allTransactions.forEach(tx => {
+      listDiv.innerHTML += `<li><button onclick="viewTransactionDetails('${tx.id}')">${tx.id} - ${tx.date} - ${tx.reference}</button></li>`;
+    });
+    listDiv.innerHTML += "</ul>";
+
+    localStorage.setItem("cashwise_all_transactions", JSON.stringify(allTransactions));
+    document.getElementById("transactionDetails").style.display = "none";
+    document.getElementById("backToTransactions").style.display = "none";
+    listDiv.style.display = "block";
+  }
+
+  function viewTransactionDetails(txId) {
+    const transactions = JSON.parse(localStorage.getItem("cashwise_all_transactions") || "[]");
+    const tx = transactions.find(t => t.id === txId);
+    if (!tx) return;
+
+    const detailDiv = document.getElementById("transactionDetails");
+    detailDiv.innerHTML = `<h3>Transaction Details</h3>
+      <p><strong>ID:</strong> ${tx.id}</p>
+      <p><strong>Date:</strong> ${tx.date}</p>
+      <p><strong>Type:</strong> ${tx.type}</p>
+      <p><strong>Account:</strong> ${tx.account}</p>
+      ${tx.source ? `<p><strong>Paid From:</strong> ${tx.source}</p>` : ""}
+      <p><strong>Amount:</strong> $${tx.amount.toFixed(2)}</p>
+      <p><strong>Reference:</strong> ${tx.reference}</p>
+      <p><strong>Note:</strong> ${tx.note}</p>`;
+
+    document.getElementById("transactionList").style.display = "none";
+    detailDiv.style.display = "block";
+    document.getElementById("backToTransactions").style.display = "inline-block";
+  }
+</script>
+
+<style>
+  #transactionList ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  #transactionList li {
+    margin-bottom: 10px;
+  }
+  #transactionList button {
+    padding: 10px 20px;
+    font-size: 16px;
+    width: 100%;
+    text-align: left;
+  }
+</style>
+
+
+<script>
+function toggleSection(sectionId) {
+  const sections = ["createUser", "setupAccounts", "recordIncome", "budgetBuilder", "recordPayment", "accountAnalysis", "budgetVsActual", "accountActivity", "searchTransactions"];
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (id === sectionId ? "block" : "none");
+  });
+}
+</script>
+</body>
+</html>
